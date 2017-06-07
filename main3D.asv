@@ -6,10 +6,9 @@
 N = 250; 
 mode = 'exp';  % 'simu' or 'exp'
 data_path = '../data/exp_3D.mat';
-jmax = 5;
-jjmax = 10;
-iternum = [80,80,80,70,70,70,70,70,80,80];
-m_series = [150,130,110,90,70,60,50,40,30,20];
+jmax = 13;
+iternum = linspace(300,500,13);
+m_series = [150,130,120,110,100,90,80,70,60,54,50,44,40];
 init_hio_factor = 0.5;
 
 init_model = load('init_model.mat');
@@ -18,7 +17,7 @@ newg = init_model.exp_pat;
 wantsave = 0;
 
 %%
-is_OK = check(m_series,iternum,jjmax);
+is_OK = check(m_series,iternum,jmax);
 m = m_series(1);
 m2 = m/2;
 Support = squarMask3D(N,m,floor(N/2),floor(N/2),floor(N/2));
@@ -41,15 +40,14 @@ figure;imagesc(log(1+squeeze(pattern(floor(N/2),:,:))));axis square;title('The m
 
 %%
 figure;
-for jj=1:jjmax
 for j=1:jmax
     g = newg;
     al = double(N/2*(jmax-j+1)/jmax);
     Rf = 1e10;
     hio_factor = init_hio_factor;
-    for i=1:iternum(jj)
+    for i=1:iternum(j)
         %========= HIO ==========
-        hio_factor = hio_factor*(iternum(jj)-i)/iternum(jj);
+        hio_factor = hio_factor*(iternum-i)/iternum;
         g = hio(g,pattern,Support,hio_factor,mask);
         %========= Filter =========
         g = filtering(g,al,Support);
@@ -59,14 +57,14 @@ for j=1:jmax
             imshow(real(squeeze(g(floor(N/2),floor(N/2)-(m2-1):floor(N/2)+1+(m2-1),floor(N/2)-(m2-1):floor(N/2)+1+(m2-1)))),'InitialMagnification',200);
         else
             subplot(1,2,1);
-            q_pattern = fftshift(fftn(squeeze(g(floor(N/2),:,:))));
+            q_pattern = fftshift(fftn(squeeze(g(floor(N/2),floor(N/2)-(m2-1):floor(N/2)+1+(m2-1),floor(N/2)-(m2-1):floor(N/2)+1+(m2-1)))));
             imagesc(log(1+abs(q_pattern)));
             title('q space');
             subplot(1,2,2);
             imagesc(log(1+abs(squeeze(g(floor(N/2),floor(N/2)-(m2-1):floor(N/2)+1+(m2-1),floor(N/2)-(m2-1):floor(N/2)+1+(m2-1))))));
             title('real space');
         end
-        suptitle(strcat('iternum : ',num2str(jj),'->',num2str(j),'->',num2str(i)));
+        suptitle(strcat('iternum : ',num2str(j),'->',num2str(i)));
         pause(0.01);
         %==============calculate new g================
         temp_g = zeros(N,N,N);
@@ -86,8 +84,7 @@ for j=1:jmax
         end
         g = real(g);
     end
-end
-    m = m_series(min(jj+1,jjmax));
+    m = m_series(j+1);
     m2 = m/2;
     Support = squarMask3D(N,m,floor(N/2),floor(N/2),floor(N/2));
 end
@@ -105,5 +102,5 @@ figure;plot(1:N,rad,'k-');hold on;plot(1:N,rad_new,'r-');
 ylim([0 700]);
 
 if wantsave==1
-    save matlab init_hio_factor iternum jmax jjmax mode newg pattern Rf;
+    save matlab init_hio_factor iternum jmax mode newg pattern Rf;
 end
