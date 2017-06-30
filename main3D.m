@@ -7,10 +7,10 @@ N = 250;
 mode = 'exp';  % 'simu' or 'exp'
 data_path = '../data/exp_3D.mat';
 jmax = 5;
-jjmax = 10;
-iternum = [80,80,80,70,70,70,70,70,80,80];
-m_series = [150,130,110,90,70,60,50,40,30,20];
-init_hio_factor = 0.5;
+jjmax = 1;
+iternum = [200];
+m_series = [150];
+init_hio_factor = 0.3;
 
 init_model = load('init_model.mat');
 newg = init_model.exp_pat;
@@ -37,6 +37,11 @@ end
 
 mask = sample.mask;
 
+if exist('newpattern')
+    pattern = newpattern;
+    mask = 1;
+end
+
 figure;imagesc(log(1+squeeze(pattern(floor(N/2),:,:))));axis square;title('The modulus of diffraction pattern (log)');
 
 %%
@@ -49,7 +54,7 @@ for j=1:jmax
     hio_factor = init_hio_factor;
     for i=1:iternum(jj)
         %========= HIO ==========
-        hio_factor = hio_factor*(iternum(jj)-i)/iternum(jj);
+%         hio_factor = hio_factor*(iternum(jj)-i)/iternum(jj);
         g = hio(g,pattern,Support,hio_factor,mask);
         %========= Filter =========
         g = filtering(g,al,Support);
@@ -72,9 +77,9 @@ for j=1:jmax
         temp_g = zeros(N,N,N);
         temp_g(Support==1) = g(Support==1);
         if length(mask)==1
-            real_g = abs(fftshift(fftn(temp_g)));
+            real_g = real(fftshift(fftn(temp_g)));
         else
-            real_g = abs(fftshift(fftn(temp_g))).*mask;
+            real_g = real(fftshift(fftn(temp_g))).*mask;
         end
         real_S = pattern;
 %         gamma = mean(real_g(:))/mean(real_S(:));
