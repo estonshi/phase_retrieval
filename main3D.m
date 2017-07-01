@@ -9,12 +9,13 @@ data_path = '../data/exp_3D.mat';
 jmax = 5;
 jjmax = 1;
 iternum = [200];
-m_series = [150];
-init_hio_factor = 0.3;
+m_series = [20];
+init_hio_factor = 0.5;
 
-init_model = load('init_model.mat');
-newg = init_model.exp_pat;
+% init_model = load('init_model.mat');
+% newg = init_model.exp_pat;
 % newg = init_model.simu_pat;
+newg = rand(N,N,N);
 wantsave = 0;
 
 %%
@@ -64,11 +65,12 @@ for j=1:jmax
             imshow(real(squeeze(g(floor(N/2),floor(N/2)-(m2-1):floor(N/2)+1+(m2-1),floor(N/2)-(m2-1):floor(N/2)+1+(m2-1)))),'InitialMagnification',200);
         else
             subplot(1,2,1);
-            q_pattern = fftshift(fftn(squeeze(g(floor(N/2),:,:))));
-            imagesc(log(1+abs(q_pattern)));
+            gg = abs(g);
+            q_pattern = fftshift(fftn(gg(:,:,:)));
+            imagesc(log(1+abs(squeeze(q_pattern(floor(N/2),:,:)))));
             title('q space');
             subplot(1,2,2);
-            imagesc(log(1+abs(squeeze(g(floor(N/2),floor(N/2)-(m2-1):floor(N/2)+1+(m2-1),floor(N/2)-(m2-1):floor(N/2)+1+(m2-1))))));
+            imagesc(log(1+abs(squeeze(gg(floor(N/2),floor(N/2)-(m2-1):floor(N/2)+1+(m2-1),floor(N/2)-(m2-1):floor(N/2)+1+(m2-1))))));
             title('real space');
         end
         suptitle(strcat('iternum : ',num2str(jj),'->',num2str(j),'->',num2str(i)));
@@ -77,19 +79,19 @@ for j=1:jmax
         temp_g = zeros(N,N,N);
         temp_g(Support==1) = g(Support==1);
         if length(mask)==1
-            real_g = real(fftshift(fftn(temp_g)));
+            real_g = abs(fftshift(fftn(temp_g)));
         else
-            real_g = real(fftshift(fftn(temp_g))).*mask;
+            real_g = abs(fftshift(fftn(temp_g))).*mask;
         end
         real_S = pattern;
 %         gamma = mean(real_g(:))/mean(real_S(:));
         score = sum(sum(sum(abs(real_g-real_S))))/sum(real_S(:));
         if score<Rf
             Rf = score;
-            newg = real(g);
+            newg = abs(g);
             disp(i);
         end
-        g = real(g);
+        g = abs(g);
     end
 end
     m = m_series(min(jj+1,jjmax));
