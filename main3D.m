@@ -5,12 +5,12 @@
 % Parameters. Carefully check before reconstruction
 N = 250; 
 mode = 'exp';  % 'simu' or 'exp'
-data_path = '../data/exp_3D.mat';
-jmax = 5;
-jjmax = 1;
-iternum = [200];
-m_series = [20];
-init_hio_factor = 0.5;
+data_path = '../data/exp_3D_5k.mat';
+jmax = 1;
+jjmax = 3;
+iternum = [200,100,50];
+m_series = [20,40,80];
+init_hio_factor = [0.4,0.7,0.9];
 
 % init_model = load('init_model.mat');
 % newg = init_model.exp_pat;
@@ -19,7 +19,7 @@ newg = rand(N,N,N);
 wantsave = 0;
 
 %%
-is_OK = check(m_series,iternum,jjmax);
+is_OK = check(init_hio_factor,m_series,iternum,jjmax);
 m = m_series(1);
 m2 = m/2;
 Support = squarMask3D(N,m,floor(N/2),floor(N/2),floor(N/2));
@@ -48,11 +48,11 @@ figure;imagesc(log(1+squeeze(pattern(floor(N/2),:,:))));axis square;title('The m
 %%
 figure;
 for jj=1:jjmax
+    hio_factor = init_hio_factor(jj);
 for j=1:jmax
     g = newg;
     al = double(N/2*(jmax-j+1)/jmax);
     Rf = 1e10;
-    hio_factor = init_hio_factor;
     for i=1:iternum(jj)
         %========= HIO ==========
 %         hio_factor = hio_factor*(iternum(jj)-i)/iternum(jj);
