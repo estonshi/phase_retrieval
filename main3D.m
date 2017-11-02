@@ -1,6 +1,9 @@
 % 3D phase retrieval
 % clear all;
-
+%------------------------------------------
+% Note: input data should in form : {'data':pattern,'mask':mask}. 'mask'
+%       is optional.
+%------------------------------------------
 %%
 % Parameters. Carefully check before reconstruction
 N = 250;    % Your martrix size N*N*N
@@ -24,9 +27,9 @@ newg = rand(N,N,N);
 
 %%
 repeat_times = 0;
-% if repeat_max~=0
-%     patt_ave = zeros(N,N,N);
-% end
+if repeat_max~=0
+    patt_ave = zeros(N,N,N);
+end
 
 for repeat_times=1:repeat_max
     close all;
@@ -49,7 +52,11 @@ for repeat_times=1:repeat_max
         pattern = double(sample.data);
     end
 
-    mask = sample.mask;
+    try
+        mask = sample.mask;
+    catch
+        mask = 1;
+    end
 
     if exist('newpattern')
         pattern = newpattern;

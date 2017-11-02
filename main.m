@@ -1,34 +1,44 @@
 %------------------------------------------
-% Note: (for simulated data) If central data are missed, please use small
-% support (30~50)
+% Note: input data should in form : {'data':pattern,'mask':mask}. 'mask'
+%       is optional.
 %------------------------------------------
 % Parameters. Carefully check before reconstruction
-N = 401;    % Your martrix size N*N*N
+N = 256;    % Your martrix size N*N*N
 mode = 'exp';  % 'simu' or 'exp'
-data_path = '../data/shell.mat';
+data_path = '../data/taubin46.mat';
 jmax = 3;    % update OSS filtering parameter while j changes
 save_all = 0;
 repeat_max = 1;
 
 jjmax = 3;   % update iter, m, hio_factor and threshold while jj changes
-iternum = [100,100,100];   % NOTE : real total iter numbers are iter*j
-m_series = [50,50,50];    % support area constraint
-init_hio_factor = [0.9,0.9,0.7];
-init_threshold = [0.0,0.00,0.00];    % support intensity constraint
+iternum = [200,200,200];   % NOTE : real total iter numbers are iter*j
+m_series = [50,40,30];    % support area constraint
+init_hio_factor = [0.9,0.8,0.7];
+init_threshold = [0.5,0.1,0.3];    % support intensity constraint
 
-%newg = rand(N,N);
-newg = zeros(N,N);
-newg(195:205,195:205) = 1;
+init = rand(N,N);
+%newg = zeros(N,N);
+%newg(195:205,195:205) = 1;
+
+% No more Parameters ...
 
 %%
-repeat_times = 0;
-
-
+newg = init;
+repeat_times = 1;
+sample = load(data_path);
+size_data = size(sample.data);
+assert(size_data(2)~=size_data(1),'Input dimension error.');
+N = size_data(2);
+new_data = zeros(size_data);
+Pc = 1;
+for Pc=1:size_data(1)
+    if repeat_max~=0
+    patt_ave = zeros(N,N);
+    end
 for repeat_times=1:repeat_max
     close all;
     %
-    g = zeros(N,N);
-    g(195:205,195:205) = 1;
+    g = init;
     %
     is_OK = check(init_hio_factor,m_series,iternum,jjmax);
     m = m_series(1);
@@ -36,20 +46,18 @@ for repeat_times=1:repeat_max
     Support = squarMask(N,m,floor(N/2),floor(N/2));
     newSupport = Support;
 
-    sample = load(data_path);
     if strcmp(mode,'simu')
-%         sampleData = DownSample3(sample.data,[100,100,100]);
-%         sampleData = MatMap(sampleData,0,1);
-%         Window = zeros(N,N,N);
-%         Window(floor(N/2)-(m2-1):floor(N/2)+1+(m2-1),floor(N/2)-(m2-1):floor(N/2)+1+(m2-1),floor(N/2)-(m2-1):floor(N/2)+1+(m2-1)) = sampleData;
-%         Window = Window.*Support;
-%         pattern = abs(fftshift(fftn(Window)));
         assert(0~=0,'Do not support simulation yet.');
     else
         pattern = double(sample.data);
+        pattern = squeeze(pattern(Pc,:,:));
     end
 
-    mask = sample.mask;
+    try
+        mask = sample.mask;
+    catch
+        mask = 1;
+    end
 
     if exist('newpattern')
         pattern = newpattern;
@@ -75,7 +83,7 @@ for repeat_times=1:repeat_max
                 %========= Disp =========
                 if strcmp(mode,'simu')
                     subplot(1,2,1);
-                    imshow(real(squeeze(g(floor(N/2)-(m2-1):floor(N/2)+1+(m2-1),floor(N/2)-(m2-1):floor(N/2)+1+(m2-1)))),'InitialMagnification',200);
+                    imshow(real(reshape(g(Support==1),[m,m])),'InitialMagnification',200);
                 else
                     subplot(1,2,1);
                     gg = abs(g);
@@ -83,7 +91,7 @@ for repeat_times=1:repeat_max
                     imagesc(log(1+abs(q_pattern)));
                     title('q space');
                     subplot(1,2,2);
-                    imagesc(log(1+abs(squeeze(gg(floor(N/2)-(m2-1):floor(N/2)+1+(m2-1),floor(N/2)-(m2-1):floor(N/2)+1+(m2-1))))));
+                    imagesc(log(1+abs(reshape(gg(Support==1),[m,m]))));
                     title('real space');
                 end
                 suptitle(strcat('iternum : ',num2str(jj),'->',num2str(j),'->',num2str(i)));
@@ -109,7 +117,7 @@ for repeat_times=1:repeat_max
                     newSupport = Support;
                 else
                     newSupport = zeros(N,N);
-                    thres_g = threshold*(median(g(:))+max(g(:)))/2.0;  % %%%%%%%%%%
+                    thres_g = threshold*max(g(:));  % %%%%%%%%%%
                     newSupport(g>thres_g) = 1;
                     newSupport = newSupport.*Support;
                 end
@@ -117,7 +125,8 @@ for repeat_times=1:repeat_max
         end
         m = m_series(min(jj+1,jjmax));
         m2 = m/2;
-        Support = squarMask(N,m,floor(N/2),floor(N/2));
+        [~,sup_cen] = max(g(:));
+        Support = squarMask(N,m,mod(sup_cen,N),1+floor(sup_cen/N));
     end
 
     if repeat_max~=0
@@ -130,6 +139,8 @@ for repeat_times=1:repeat_max
     end
 end
 g = patt_ave / repeat_max;
+new_data(Pc,:,:) = g;
+end
 %%
 if length(size(g))==2
     temp=fftshift(fft2(g));
