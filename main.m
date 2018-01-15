@@ -6,15 +6,15 @@
 N = 256;    % Your martrix size N*N*N
 mode = 'exp';  % 'simu' or 'exp'
 data_path = '../data/taubin46.mat';
-jmax = 3;    % update OSS filtering parameter while j changes
+jmax = 1;    % update OSS filtering parameter while j changes
 save_all = 0;
-repeat_max = 1;
+repeat_max = 20;
 
-jjmax = 3;   % update iter, m, hio_factor and threshold while jj changes
-iternum = [200,200,200];   % NOTE : real total iter numbers are iter*j
-m_series = [50,40,30];    % support area constraint
-init_hio_factor = [0.9,0.8,0.7];
-init_threshold = [0.5,0.1,0.3];    % support intensity constraint
+jjmax = 6;   % update iter, m, hio_factor and threshold while jj changes
+iternum = [1000,100,100,100,100,200];   % NOTE : real total iter numbers are iter*j
+m_series = [50,40,30,30,30,30];    % support area constraint
+init_hio_factor = [0.9,0.5,0.7,0.7,0.8,0.95];
+init_threshold = [0.07,0.08,0.09,0.1,0.2,0.2];    % support intensity constraint
 
 init = rand(N,N);
 %newg = zeros(N,N);
@@ -54,7 +54,7 @@ for repeat_times=1:repeat_max
     end
 
     try
-        mask = sample.mask;
+        mask = squeeze(sample.mask(Pc,:,:));
     catch
         mask = 1;
     end
@@ -77,6 +77,7 @@ for repeat_times=1:repeat_max
             Rf = 1e10;
             for i=1:iternum(jj)
                 %========= HIO ==========
+%                 g = bKac(g,pattern,mask,0.1);
                 g = hio(g,pattern,newSupport,hio_factor,mask);
                 %========= Filter =========
                 g = filtering(g,al,newSupport);
@@ -94,7 +95,7 @@ for repeat_times=1:repeat_max
                     imagesc(log(1+abs(reshape(gg(Support==1),[m,m]))));
                     title('real space');
                 end
-                suptitle(strcat('iternum : ',num2str(jj),'->',num2str(j),'->',num2str(i)));
+                suptitle(strcat('repeat',num2str(repeat_times),',iternum : ',num2str(jj),'->',num2str(j),'->',num2str(i)));
                 pause(0.01);
                 %==============calculate new g================
                 temp_g = zeros(N,N);
@@ -105,7 +106,8 @@ for repeat_times=1:repeat_max
                     real_g = abs(fftshift(fftn(temp_g))).*mask;
                 end
                 real_S = pattern.*mask;
-                score = sum(sum(sum(abs(real_g-real_S))))/sum(real_S(:));
+                vmask = find(real_S>0);
+                score = sum(abs(real_g(vmask)-real_S(vmask)))/sum(real_S(vmask));
                 if score<Rf
                     Rf = score;
                     newg = abs(g);
